@@ -1,0 +1,56 @@
+name: Release Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Build Platform'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - arm64
+          - x86_64
+      version:
+        description: 'Version (e.g. v1.0.0)'
+        required: true
+        type: string
+        default: 'v1.0.0'
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Swift
+        uses: swift-actions/setup-swift@v1
+        with:
+          swift-version: "5.9"
+
+      - name: Build for arm64
+        if: github.event.inputs.platform == 'arm64' || github.event.inputs.platform == 'all'
+        run: |
+          swift build -c release --arch arm64
+          mv .build/release/macos-vision-ocr .build/release/macos-vision-ocr-arm64
+          zip -j macos-vision-ocr-arm64-${{ github.event.inputs.version }}.zip .build/release/macos-vision-ocr-arm64
+
+      - name: Build for x86_64
+        if: github.event.inputs.platform == 'x86_64' || github.event.inputs.platform == 'all'
+        run: |
+          swift build -c release --arch x86_64
+          mv .build/release/macos-vision-ocr .build/release/macos-vision-ocr-x86_64
+          zip -j macos-vision-ocr-x86_64-${{ github.event.inputs.version }}.zip .build/release/macos-vision-ocr-x86_64
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          name: Release ${{ github.event.inputs.version }}
+          draft: false
+          prerelease: false
+          files: |
+            macos-vision-ocr-*-${{ github.event.inputs.version }}.zip

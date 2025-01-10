@@ -206,7 +206,10 @@ struct MacOSVisionOCR: ParsableCommand {
         request.usesLanguageCorrection = true
         request.recognitionLanguages = getSupportedLanguages()
         request.revision = revision
-        
+        if #available(macOS 13.0, *) {
+            request.automaticallyDetectsLanguage = true
+        }
+
         request.minimumTextHeight = 0.01
 
         let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
